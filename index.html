@@ -281,6 +281,10 @@ const ING = {
   potato:{n:'Potatoes',k:77,p:2,c:17,f:0.1,a:'Produce & frozen'},
   sweetp:{n:'Sweet potato',k:86,p:1.6,c:20,f:0.1,a:'Produce & frozen'},
   stirfry:{n:'Frozen stir-fry vegetables',k:40,p:2,c:7,f:0.3,a:'Produce & frozen'},
+  steak:{n:'Sirloin steak, raw',k:160,p:21,c:0,f:8,a:'Meat & protein',meat:1},
+  tsaus:{n:'Turkey breakfast sausage',k:196,p:16,c:2,f:14,a:'Meat & protein',meat:1},
+  jerky:{n:'Beef jerky',k:286,p:46,c:18,f:3.5,a:'Meat & protein',meat:1},
+  bbq:{n:'BBQ sauce',k:172,p:0.8,c:41,f:0.6,a:'Pantry',u:{g:17,r:0.5,lab:'tbsp'}},
   corn:{n:'Frozen corn',k:86,p:3.2,c:19,f:1.2,a:'Produce & frozen'},
 };
 
@@ -322,8 +326,16 @@ const RECIPES = [
  {id:'s6',cat:'s',name:'Tuna rice cakes',t:5,ing:[['tuna',80],['yog',20],['ricecake',27]],steps:['Mix the tuna with the yogurt, salt and pepper.','Spoon onto the rice cakes.']},
  {id:'s7',cat:'s',name:'Boiled eggs and an apple',t:12,note:'Boil a batch ahead for the week.',ing:[['egg',100],['apple',180]],steps:['Boil the eggs for 9 minutes, then cool in cold water and peel.','Serve with a sliced apple.']},
  {id:'s8',cat:'s',name:'Turkey cheese roll-ups',t:3,ing:[['deli',90],['ched',20],['cuc',80]],steps:['Lay out the turkey slices, add cheese and cucumber sticks, and roll up.']},
+ {id:'b9',cat:'b',name:'Sausage and egg breakfast sandwich',t:10,ing:[['tsaus',60],['egg',50],['ched',15],['bread',80]],steps:['Cook the sausage patties in a non-stick pan for 3 to 4 minutes a side.','Fry the egg in the same pan and lay the cheese on top to melt.','Toast the bread and stack the sausage and egg between the slices.']},
+ {id:'b10',cat:'b',name:'Steak and eggs with hash browns',t:20,ing:[['steak',120],['egg',100],['potato',150],['oil',4.5]],steps:['Dice the potato, microwave 4 minutes, then crisp it in the oil for 6 to 8 minutes.','Season the steak and sear it 3 to 4 minutes a side in a hot pan. Rest it while you fry the eggs.','Slice the steak and serve with the eggs and hash browns.']},
+ {id:'m19',cat:'m',name:'Steak fajita rice bowl',t:20,ing:[['steak',150],['pepper',100],['onion',60],['rice',150],['salsa',40],['oil',4.5]],steps:['Slice the steak thin and toss with fajita or chili seasoning.','Sear it in the oil for 3 minutes, then add the sliced pepper and onion for 4 minutes more.','Serve over rice with salsa.']},
+ {id:'m20',cat:'m',name:'BBQ chicken and sweet potato',t:30,ing:[['chick',160],['sweetp',220],['broc',120],['bbq',34]],steps:['Heat the oven to 425°F (220°C). Cube the sweet potato and roast 10 minutes.','Brush the chicken with half the BBQ sauce, add it and the broccoli to the pan and roast 18 to 20 minutes, until the chicken reaches 165°F (74°C).','Brush with the rest of the sauce before serving.']},
+ {id:'m21',cat:'m',name:'Cheeseburger bowl',t:15,ing:[['beef',150],['potato',200],['greens',50],['tomato',60],['ched',20]],steps:['Cube the potatoes and microwave 5 minutes, or air-fry 15 minutes until crisp.','Brown the beef with salt, pepper and garlic powder for 6 to 7 minutes.','Pile the greens, tomato, potatoes and beef in a bowl, top with cheese, and add mustard or pickles if you like.']},
+ {id:'m22',cat:'m',name:'Steak and potatoes',t:25,ing:[['steak',170],['potato',250],['broc',120],['oil',4.5]],steps:['Cube the potatoes, toss in the oil and roast at 425°F (220°C) for 20 minutes, or air-fry 15.','Steam the broccoli in the microwave for 3 minutes.','Season the steak and sear 3 to 5 minutes a side, rest it 5 minutes, then slice.']},
+ {id:'s9',cat:'s',name:'Jerky and a cheese stick',t:1,ing:[['jerky',35],['mozz',28]],steps:['Grab and go.']},
+ {id:'s10',cat:'s',name:'Jerky and an apple',t:1,ing:[['jerky',40],['apple',180]],steps:['Grab and go.']},
 ];
-const WHEN={m1:'both',m2:'dinner',m3:'dinner',m4:'dinner',m5:'both',m6:'dinner',m7:'lunch',m8:'dinner',m9:'dinner',m10:'lunch',m11:'dinner',m12:'lunch',m13:'lunch',m14:'dinner',m15:'both',m16:'lunch',m17:'dinner',m18:'dinner'};
+const WHEN={m1:'both',m2:'dinner',m3:'dinner',m4:'dinner',m5:'both',m6:'dinner',m7:'lunch',m8:'dinner',m9:'dinner',m10:'lunch',m11:'dinner',m12:'lunch',m13:'lunch',m14:'dinner',m15:'both',m16:'lunch',m17:'dinner',m18:'dinner',m19:'both',m20:'dinner',m21:'both',m22:'dinner'};
 RECIPES.forEach(r=>{if(r.cat==='m')r.when=WHEN[r.id];});
 const R = {};
 RECIPES.forEach(r=>{
@@ -373,6 +385,8 @@ function eligible(r){
   if(S.nofish&&r.fish)return false;
   if(S.df&&r.dairy)return false;
   if(S.maxT&&r.t>S.maxT)return false;
+  if((S.notofu||S.meaty)&&r.ing.some(x=>x[0]==='tofu'))return false;
+  if(S.meaty&&!r.meat&&!r.fish)return false;
   return true;
 }
 function slotAccepts(sl,r){if(sl.pool.includes(r.cat))return true;if(r.cat!=='m')return false;
@@ -428,7 +442,7 @@ function buildItem(it){
 
 // ---------- State & saving ----------
 const KEY='macroplate:v2';
-const BLANK={setup:false,name:'',T:{k:2000,p:150,c:200,f:65},layout:'3s',veg:false,nofish:false,df:false,maxT:0,favBias:false,
+const BLANK={setup:false,name:'',T:{k:2000,p:150,c:200,f:65},layout:'3s',veg:false,meaty:false,notofu:false,nofish:false,df:false,maxT:0,favBias:false,
   body:{sex:'m',age:35,units:'imp',ft:5,inch:10,cm:178,lb:190,kg:86,act:1.55,goal:'lose'},
   week:null,start:null,day:0,view:'today',fav:{},have:{},done:{},scope:'week',course:'all',sort:'time',q:'',applyDiet:false,savedAt:0};
 let S=loadLocal();
@@ -535,7 +549,7 @@ function favBtn(id,small){const on=isFav(id);return `<button type="button" class
 
 // ---------- Setup wizard ----------
 let W=null;
-function startWizard(){W={step:0,name:S.name,mode:'calc',T:{...S.T},body:{...S.body},layout:S.layout,veg:S.veg,nofish:S.nofish,df:S.df,maxT:S.maxT,start:ymd(new Date())};}
+function startWizard(){W={step:0,name:S.name,mode:'calc',T:{...S.T},body:{...S.body},layout:S.layout,veg:S.veg,meaty:S.meaty,notofu:S.notofu,nofish:S.nofish,df:S.df,maxT:S.maxT,start:ymd(new Date())};}
 function renderWizard(app){
   const st=W.step, steps=3;
   let h=`<div class="wiz"><div class="brand">Macro <span>Plate</span></div><div class="steps" aria-hidden="true">${[0,1,2].map(i=>`<i class="${i<=st?'on':''}"></i>`).join('')}</div>`;
@@ -568,9 +582,11 @@ function renderWizard(app){
     <div class="card">
       <div class="field"><span class="lbl">Meals per day</span><div class="opts">${[['2','2 meals','Great with intermittent fasting'],['2s','2 meals + snack',''],['3','3 meals','Breakfast, lunch, dinner'],['3s','3 meals + snack','Most popular'],['3ss','3 meals + 2 snacks','Smaller, more often']].map(([v,l,s])=>`<label class="opt"><input type="radio" name="layout" value="${v}" ${W.layout===v?'checked':''}><div><b>${l}</b><small>${s||'&nbsp;'}</small></div></label>`).join('')}</div></div>
       <div class="field"><span class="lbl">Anything to avoid?</span><div class="chips">
+        <label class="chip"><input type="checkbox" id="w-meaty" ${W.meaty?'checked':''}><span>Meat-heavy</span></label>
+        <label class="chip"><input type="checkbox" id="w-notofu" ${W.notofu?'checked':''}><span>No tofu</span></label>
         <label class="chip"><input type="checkbox" id="w-veg" ${W.veg?'checked':''}><span>Vegetarian</span></label>
         <label class="chip"><input type="checkbox" id="w-nofish" ${W.nofish?'checked':''}><span>No fish or seafood</span></label>
-        <label class="chip"><input type="checkbox" id="w-df" ${W.df?'checked':''}><span>Dairy-free</span></label></div></div>
+        <label class="chip"><input type="checkbox" id="w-df" ${W.df?'checked':''}><span>Dairy-free</span></label></div><p class="fine">Meat-heavy puts meat or fish in every meal and snack.</p></div>
       <div class="field"><label for="w-maxT">Longest you want to spend cooking a meal</label><select id="w-maxT">${[[0,'Up to 35 minutes'],[25,'25 minutes or less'],[15,'15 minutes or less']].map(([v,l])=>`<option value="${v}" ${+W.maxT===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><label for="w-start">Start my week on</label><select id="w-start">${dates.map((d,i)=>`<option value="${ymd(d)}" ${W.start===ymd(d)?'selected':''}>${i===0?'Today, ':i===1?'Tomorrow, ':''}${wk(d)} ${md(d)}</option>`).join('')}</select><p class="fine">Pick your grocery day. The plan runs for 7 days from there.</p></div>
     </div>`;
@@ -589,7 +605,9 @@ function renderWizard(app){
   const chk=()=>{const t=W.T,m=t.p*4+t.c*4+t.f*9,el=$('w-check');if(!el)return;el.textContent=m?`Your macros add up to ${fmt(m)} kcal${Math.abs(m-t.k)/t.k>0.08?`, which is ${fmt(Math.abs(m-t.k))} kcal ${m>t.k?'over':'under'} your calorie number.`:'.'}`:'';};
   app.querySelectorAll('[data-t]').forEach(i=>i.oninput=()=>{W.T[i.dataset.t]=+i.value;chk();});chk();
   app.querySelectorAll('[name=layout]').forEach(i=>i.onchange=()=>W.layout=i.value);
-  ['veg','nofish','df'].forEach(k=>{const e=$('w-'+k);if(e)e.onchange=()=>W[k]=e.checked;});
+  ['veg','meaty','notofu','nofish','df'].forEach(k=>{const e=$('w-'+k);if(e)e.onchange=()=>{W[k]=e.checked;
+    if(e.checked&&k==='meaty'){W.veg=false;$('w-veg').checked=false;}
+    if(e.checked&&k==='veg'){W.meaty=false;$('w-meaty').checked=false;}};});
   if($('w-maxT'))$('w-maxT').onchange=e=>W.maxT=+e.target.value;
   if($('w-start'))$('w-start').onchange=e=>W.start=e.target.value;
   if($('w-back'))$('w-back').onclick=()=>{W.step--;renderWizard(app);};
@@ -602,7 +620,7 @@ function renderWizard(app){
       if([t.p,t.c,t.f].some(v=>!(v>=0)))return err('Enter protein, carbs and fat in grams.');
       W.step=2;return renderWizard(app);
     }
-    Object.assign(S,{name:W.name.trim(),T:{...W.T},body:{...W.body},layout:W.layout,veg:W.veg,nofish:W.nofish,df:W.df,maxT:W.maxT});
+    Object.assign(S,{name:W.name.trim(),T:{...W.T},body:{...W.body},layout:W.layout,veg:W.veg,meaty:W.meaty,notofu:W.notofu,nofish:W.nofish,df:W.df,maxT:W.maxT});
     if(!buildWeek(W.start))return err('No recipes fit those settings. Allow more cooking time or remove a diet filter.');
     S.setup=true;const ti=todayIdx();S.view=ti>=0&&ti<7?'today':'week';W=null;save();render();window.scrollTo(0,0);
     toast(`Your week is ready, ${S.name}.`);
@@ -752,14 +770,14 @@ function renderRecipes(v){
 let confirmReset=false;
 function renderMe(v){
   const lay={'2':'2 meals','2s':'2 meals + snack','3':'3 meals','3s':'3 meals + snack','3ss':'3 meals + 2 snacks'}[S.layout];
-  const diet=[S.veg&&'Vegetarian',S.nofish&&'No fish',S.df&&'Dairy-free'].filter(Boolean).join(', ')||'No restrictions';
+  const diet=[S.meaty&&'Meat-heavy',S.notofu&&!S.meaty&&'No tofu',S.veg&&'Vegetarian',S.nofish&&'No fish',S.df&&'Dairy-free'].filter(Boolean).join(', ')||'No restrictions';
   let h=`<div class="sumhead"><div><div class="eyebrow">Your profile</div><h2>${esc(S.name)}</h2></div><button class="btn ghost" type="button" id="redo">Redo setup</button></div>
   <div class="stats"><div class="stat"><b>${fmt(S.T.k)}</b><span>kcal a day</span></div><div class="stat"><b>${S.T.p} g</b><span>protein</span></div><div class="stat"><b>${S.T.c} g</b><span>carbs</span></div><div class="stat"><b>${S.T.f} g</b><span>fat</span></div><div class="stat"><b>${Object.keys(S.fav).length}</b><span>favorites</span></div></div>
   <form class="card" id="meform" novalidate><h3>Change your plan</h3>
     <div class="g4">${[['k','Calories','kcal','d-k'],['p','Protein','g','d-p'],['c','Carbs','g','d-c'],['f','Fat','g','d-f']].map(([k,l,u,d])=>`<div class="field"><label for="m-${k}"><i class="dot ${d}"></i>${l}</label><div class="inp"><input id="m-${k}" type="number" inputmode="numeric" value="${S.T[k]}"><span>${u}</span></div></div>`).join('')}</div>
     <div class="g2"><div class="field"><label for="m-layout">Meals per day</label><select id="m-layout">${Object.entries({'2':'2 meals','2s':'2 meals + snack','3':'3 meals','3s':'3 meals + snack','3ss':'3 meals + 2 snacks'}).map(([k,l])=>`<option value="${k}" ${k===S.layout?'selected':''}>${l}</option>`).join('')}</select></div>
     <div class="field"><label for="m-maxT">Cooking time per meal</label><select id="m-maxT">${[[0,'Up to 35 minutes'],[25,'25 minutes or less'],[15,'15 minutes or less']].map(([k,l])=>`<option value="${k}" ${+S.maxT===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
-    <div class="chips"><label class="chip"><input type="checkbox" id="m-veg" ${S.veg?'checked':''}><span>Vegetarian</span></label><label class="chip"><input type="checkbox" id="m-nofish" ${S.nofish?'checked':''}><span>No fish or seafood</span></label><label class="chip"><input type="checkbox" id="m-df" ${S.df?'checked':''}><span>Dairy-free</span></label><label class="chip"><input type="checkbox" id="m-fb" ${S.favBias?'checked':''}><span>Use my favorites more</span></label></div>
+    <div class="chips"><label class="chip"><input type="checkbox" id="m-meaty" ${S.meaty?'checked':''}><span>Meat-heavy</span></label><label class="chip"><input type="checkbox" id="m-notofu" ${S.notofu?'checked':''}><span>No tofu</span></label><label class="chip"><input type="checkbox" id="m-veg" ${S.veg?'checked':''}><span>Vegetarian</span></label><label class="chip"><input type="checkbox" id="m-nofish" ${S.nofish?'checked':''}><span>No fish or seafood</span></label><label class="chip"><input type="checkbox" id="m-df" ${S.df?'checked':''}><span>Dairy-free</span></label><label class="chip"><input type="checkbox" id="m-fb" ${S.favBias?'checked':''}><span>Use my favorites more</span></label></div>
     <p class="err" id="m-err" hidden></p>
     <div class="row"><button class="btn" type="submit">Save and re-plan the rest of this week</button></div>
     <p class="fine">Days already behind you stay as they were. Favorites are kept.</p></form>
@@ -767,11 +785,13 @@ function renderMe(v){
     <div class="row">${confirmReset?'<span class="note">This deletes your plan, favorites and settings.</span><button class="btn danger" type="button" id="reset2">Delete everything</button><button class="btn ghost" type="button" id="reset0">Keep my data</button>':'<button class="btn ghost" type="button" id="reset1">Start over</button>'}</div></div>
   <p class="fine">Current plan: ${lay} · ${diet}. Nutrition is estimated from standard values for each ingredient.</p>`;
   v.innerHTML=h;
+  $('m-meaty').onchange=e=>{if(e.target.checked)$('m-veg').checked=false;};
+  $('m-veg').onchange=e=>{if(e.target.checked)$('m-meaty').checked=false;};
   $('redo').onclick=()=>{startWizard();render();window.scrollTo(0,0);};
   $('meform').onsubmit=e=>{e.preventDefault();
     const T={k:+$('m-k').value,p:+$('m-p').value,c:+$('m-c').value,f:+$('m-f').value}, er=$('m-err');
     if(!(T.k>=800&&T.k<=6000)){er.textContent='Calories need to be between 800 and 6,000.';er.hidden=false;return;}
-    Object.assign(S,{T,layout:$('m-layout').value,maxT:+$('m-maxT').value,veg:$('m-veg').checked,nofish:$('m-nofish').checked,df:$('m-df').checked,favBias:$('m-fb').checked});
+    Object.assign(S,{T,layout:$('m-layout').value,maxT:+$('m-maxT').value,veg:$('m-veg').checked,meaty:$('m-meaty').checked,notofu:$('m-notofu').checked,nofish:$('m-nofish').checked,df:$('m-df').checked,favBias:$('m-fb').checked});
     const ti=Math.max(0,todayIdx());
     if(ti>6){buildWeek(ymd(new Date()));}else{const used={};for(let d=0;d<7;d++){if(d<ti){S.week[d].items.forEach(x=>used[x.id]=(used[x.id]||0)+1);continue;}const p=generate(used);if(p.error){er.textContent=p.error;er.hidden=false;return;}S.week[d]=p;p.items.forEach((x,i)=>{used[x.id]=(used[x.id]||0)+1;delete S.done[d+'-'+i];});}}
     save();S.view='week';render();toast('Saved. The rest of your week is re-planned.');
